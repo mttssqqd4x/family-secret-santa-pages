@@ -1,96 +1,35 @@
-33
-34
-35
-36
-37
-38
-39
-40
-41
-42
-43
-44
-45
-46
-47
-48
-49
-50
-51
-52
-53
-54
-55
-56
-57
-58
-59
-60
-61
-62
-63
-64
-65
-66
-67
-68
-69
-70
-71
-72
-73
-74
-75
-76
-77
-78
-79
-80
-81
-82
-83
-84
-85
-86
-87
-88
-89
-90
-91
-92
-93
-94
-95
-96
-97
-98
-99
-100
-101
-102
-103
-104
-105
-106
-107
-108
-109
-110
-111
-112
-113
-114
-115
-116
-117
-118
-119
-120
-121
-122
-123
-124
-125
+import React, { useCallback, useEffect, useState } from 'react';
+import { createRoot } from 'react-dom/client';
+import { createClient } from '@supabase/supabase-js';
+import { Gift, Heart, LockKeyhole, LogOut, Settings2, Sparkles, ArrowLeft, RefreshCw } from 'lucide-react';
+import './style.css';
+
+const url = import.meta.env.VITE_SUPABASE_URL;
+const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const configured = Boolean(url && key && /^https:\/\//.test(url));
+const sb = configured ? createClient(url, key) : null;
+const year = () => Number(new Intl.DateTimeFormat('en-US', {timeZone:'America/Denver',year:'numeric'}).format(new Date()));
+const knownNames = ['Joe','Dawn','Katie','Sam','Jordyn','Jonah'];
+function errText(err) {return err?.message || 'Something went wrong. Please try again.'}
+function check({error}) {if (error) throw error;}
+const nameOf = (members,id) => members.find(m=>m.id===id)?.display_name || 'Former member';
+function App() {
+  const [session, setSession] = useState(null);
+  const [ready, setReady] = useState(false);
+  const [page,setPage] = useState('home');
+  const [me,setMe] = useState(null);
+  const [pair,setPair] = useState(null);
+  const [myList,setMyList] = useState('');
+  const [theirList,setTheirList] = useState('');
+  const [addOnly,setAddOnly] = useState(false);
+  const [members,setMembers] = useState([]);
+  const [exclusions,setExclusions] = useState([]);
+  const [history,setHistory] = useState([]);
+  const [pairCount,setPairCount] = useState(0);
+  const [notice,setNotice] = useState('');
+  const [busy,setBusy] = useState(false);
+  const [authMode,setAuthMode] = useState('login');
+  const [wishlistDraft,setWishlistDraft] = useState('');
   const [addition,setAddition] = useState('');
   const [giver,setGiver] = useState('');
   const [recipient,setRecipient] = useState('');
