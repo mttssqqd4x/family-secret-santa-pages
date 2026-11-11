@@ -1,35 +1,96 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { createRoot } from 'react-dom/client';
-import { createClient } from '@supabase/supabase-js';
-import { Gift, Heart, LockKeyhole, LogOut, Settings2, Sparkles, ArrowLeft, RefreshCw } from 'lucide-react';
-import './style.css';
-
-const url = import.meta.env.VITE_SUPABASE_URL;
-const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-const configured = Boolean(url && key && /^https:\/\//.test(url));
-const sb = configured ? createClient(url, key) : null;
-const year = () => Number(new Intl.DateTimeFormat('en-US', {timeZone:'America/Denver',year:'numeric'}).format(new Date()));
-const knownNames = ['Joe','Dawn','Katie','Sam','Jordyn','Jonah'];
-function errText(err) {return err?.message || 'Something went wrong. Please try again.'}
-function check({error}) {if (error) throw error;}
-const nameOf = (members,id) => members.find(m=>m.id===id)?.display_name || 'Former member';
-function App() {
-  const [session, setSession] = useState(null);
-  const [ready, setReady] = useState(false);
-  const [page,setPage] = useState('home');
-  const [me,setMe] = useState(null);
-  const [pair,setPair] = useState(null);
-  const [myList,setMyList] = useState('');
-  const [theirList,setTheirList] = useState('');
-  const [addOnly,setAddOnly] = useState(false);
-  const [members,setMembers] = useState([]);
-  const [exclusions,setExclusions] = useState([]);
-  const [history,setHistory] = useState([]);
-  const [pairCount,setPairCount] = useState(0);
-  const [notice,setNotice] = useState('');
-  const [busy,setBusy] = useState(false);
-  const [authMode,setAuthMode] = useState('login');
-  const [wishlistDraft,setWishlistDraft] = useState('');
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
   const [addition,setAddition] = useState('');
   const [giver,setGiver] = useState('');
   const [recipient,setRecipient] = useState('');
@@ -109,7 +170,7 @@ function App() {
   const removeRule = id => run(async()=>check(await sb.from('exclusions').delete().eq('id',id)),'Restriction removed.',true);
   const draw = async e => {e.preventDefault();if(!confirmed)return;await run(async()=>check(await sb.rpc('draw_secret_santa')),'Names have been drawn for '+year()+'!',true);setConfirmed(false)};
   const homeButton = <button className="navlink" onClick={()=>{setNotice('');setPage('home')}}><ArrowLeft size={16}/> My page</button>;
-  const header = <header className="topbar"><div className="brand"><span className="brandmark">✳</span><span>Secret Santa <small>FAMILY EDITION</small></span></div><nav className="nav">{page==='admin'?homeButton:<>{me?.is_admin&&<button className="navlink" onClick={()=>{setNotice('');setPage('admin')}}><Settings2 size={16}/> Organizer</button>}<button className="navlink" onClick={()=>refresh()}><RefreshCw size={15}/> Refresh</button></>}<button className="navlink" disabled={busy} onClick={signOut}><LogOut size={16}/> Sign out</button></nav></header>;
+  const header = <header className="topbar"><div className="brand"><span className="brandmark" aria-hidden="true"><Sparkles size={22} strokeWidth={2.2}/></span><span>Secret Santa <small>FAMILY EDITION</small></span></div><nav className="nav">{page==='admin'?homeButton:<>{me?.is_admin&&<button className="navlink" onClick={()=>{setNotice('');setPage('admin')}}><Settings2 size={16}/> Organizer</button>}<button className="navlink" onClick={()=>refresh()}><RefreshCw size={15}/> Refresh</button></>}<button className="navlink" disabled={busy} onClick={signOut}><LogOut size={16}/> Sign out</button></nav></header>;
   if (!configured) return <main className="authwrap"><div className="authcard"><h1>Setup needed</h1><p>This site needs the Supabase project URL and publishable key configured in the GitHub repository variables. See README.md.</p></div></main>;
   if(!ready) return <main className="authwrap"><div className="authcard">Loading Christmas magic…</div></main>;
   if(!session) return <div className="authwrap"><section className="authcard"><div className="authsparkle">✳</div><div className="eyebrow"><Sparkles size={14}/> FAMILY CHRISTMAS</div><h1>{authMode==='login'?'Welcome ': 'Join the '}<em>{authMode==='login'?'back!':'family'}</em></h1><p className="lede">{authMode==='login'?'Sign in to see your Secret Santa and their wishes.':'Create your account to join the family drawing.'}</p>{notice&&<p className={'flash '+(notice.startsWith('Error:')?'bad':'')}>{notice}</p>}<form className="stack" onSubmit={submitAuth}>{authMode==='signup'&&<label>Your name<select name="name" required defaultValue=""><option value="" disabled>Choose your name</option>{knownNames.map(n=><option key={n} value={n}>{n}</option>)}</select></label>}<label>Email<input name="email" type="email" autoComplete="email" required/></label><label>Password<input name="password" type="password" autoComplete={authMode==='login'?'current-password':'new-password'} minLength={8} required/></label><button disabled={busy} className="primary wide" type="submit">{busy?'Working…':authMode==='login'?'Sign in':'Create account'}</button></form><p className="authfoot">{authMode==='login'?'New to the family site? ':'Already signed up? '}<button className="textbutton" onClick={()=>{setAuthMode(authMode==='login'?'signup':'login');setNotice('')}}>{authMode==='login'?'Create an account':'Sign in'}</button></p></section></div>;
