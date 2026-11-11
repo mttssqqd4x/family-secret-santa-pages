@@ -90,15 +90,58 @@ function App() {
   };
   const signOut = () => run(async()=>check(await sb.auth.signOut()),'You have signed out.');
   const submitAuth = async (event) => {
-    event.preventDefault();const form = new FormData(event.currentTarget);
-    const email = String(form.get('email')||'').trim();const password = String(form.get('password')||'');
-    if(authMode==='signup' && !knownNames.includes(String(form.get('name')||''))) {setNotice('Select your name from the family list.');return;}
-    await run(async()=>{
-      if(authMode==='signup') {
-        const response=await sb.auth.signUp({email,password,options:{data:{full_name:String(form.get('name'))},emailRedirectTo:window.location.origin + import.meta.env.BASE_URL}});
-        check(response);
-      } else check(await sb.auth.signInWithPassword({email,password}));
-    },authMode==='signup'?'Account created. Confirm your email, then sign in.':'Signed in.');
+    event.preventDefault();
+    if (busy) return;
+    const form = new FormData(event.currentTarget);
+    const email = String(form.get('email') || '').trim();
+    const password = String(form.get('password') || '');
+    const selectedName = String(form.get('name') || '');
+    if (authMode === 'signup' && !knownNames.includes(selectedName)) {
+      setNotice('Select your name from the family list.');
+      return;
+    }
+
+    setBusy(true);
+    setNotice('');
+    try {
+      if (authMode === 'signup') {
+        const {data, error} = await sb.auth.signUp({
+          email,
+          password,
+          options: {data: {full_name: selectedName}}
+        });
+        if (error) throw error;
+
+        // When Confirm Email is disabled in Supabase, signUp returns a session.
+        // This signs the new member into the website immediately.
+        if (data?.session) {
+          setSession(data.session);
+          setPage('home');
+          setNotice('Account created! You are signed in. Your organizer will approve your account.');
+        } else {
+          // A browser cannot override Supabase's server-side email confirmation policy.
+          // Offer sign-in without falsely claiming verification was bypassed.
+          const signIn = await sb.auth.signInWithPassword({email, password});
+          if (signIn.error || !signIn.data?.session) {
+            setAuthMode('login');
+            setNotice('Your account was created, but Supabase is still requiring email confirmation. Turn OFF Confirm Email in Supabase → Authentication → Providers → Email, then sign in.');
+          } else {
+            setSession(signIn.data.session);
+            setPage('home');
+            setNotice('Account created! You are signed in. Your organizer will approve your account.');
+          }
+        }
+      } else {
+        const {data, error} = await sb.auth.signInWithPassword({email, password});
+        if (error) throw error;
+        if (data?.session) setSession(data.session);
+        setNotice('Signed in.');
+      }
+    } catch (error) {
+      setNotice('Error: ' + errText(error));
+    } finally {
+      setBusy(false);
+    }
   };
   const saveList = async e => {e.preventDefault(); await run(async()=>{
       const {error} = await sb.from('wishlists').upsert({user_id:session.user.id,content:wishlistDraft,updated_at:new Date().toISOString()},{onConflict:'user_id'}); if(error) throw error;
